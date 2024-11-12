@@ -91,7 +91,7 @@ affinity: {}
 
 configmap:
   enabled: true
-  mountPath: /opt/app/alerting/rules.yaml
+  mountPath: /opt/app/alerting
 
 serviceAccount:
   create: true
@@ -124,4 +124,3 @@ env:
   datasetServiceUrl: "http://dataset-api.dataset-api.svc:3000"
   delay: "5000"
   folder: "/opt/app/alerting"
-  source: "system-rule-ingestor-job"

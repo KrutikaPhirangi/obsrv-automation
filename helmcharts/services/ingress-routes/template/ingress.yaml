@@ -1,0 +1,88 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: "{{ .Values.cluster_issuer }}"
+    appgw.ingress.kubernetes.io/preserve-host-header: "true"
+    appgw.ingress.kubernetes.io/ssl-redirect: "{{ .Values.ssl_redirect }}"
+    kubernetes.io/ingress.class: "{{ .Values.ingress_class }}"
+  name: "{{ .Values.webconsole.name }}-ingress"
+  namespace: "{{ .Values.webconsole.namespace }}"
+spec:
+  tls:
+  - secretName: "{{ .Values.cert_secret_name }}"
+    hosts:
+    - "{{ .Values.domain }}"
+  rules:
+  - host: "{{ .Values.domain }}"
+    http:
+      paths:
+      {{- range .Values.webconsole.paths }}
+      - path: {{ .path }}
+        pathType: {{ $.Values.webconsole.path_type }}
+        backend:
+          service:
+            name: {{ $.Values.webconsole.service_name }}
+            port:
+              number: {{ $.Values.webconsole.service_port }}
+      {{- end }}
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: "{{ .Values.cluster_issuer }}"
+    appgw.ingress.kubernetes.io/preserve-host-header: "true"
+    appgw.ingress.kubernetes.io/ssl-redirect: "{{ .Values.ssl_redirect }}"
+    kubernetes.io/ingress.class: "{{ .Values.ingress_class }}"
+  name: {{ .Values.grafana.name }}
+  namespace: {{ .Values.grafana.namespace }}
+spec:
+  tls:
+  - secretName: {{ .Values.cert_secret_name }}
+    hosts:
+    - {{ .Values.domain }}
+  rules:
+  - host: {{ .Values.domain }}
+    http:
+      paths:
+      {{- range .Values.grafana.paths }}
+      - path: {{ .path }}
+        pathType: {{ $.Values.grafana.path_type }}
+        backend:
+          service:
+            name: {{ $.Values.grafana.service_name }}
+            port:
+              number: {{ $.Values.grafana.service_port }}
+      {{- end }}
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: "{{ .Values.cluster_issuer }}"
+    appgw.ingress.kubernetes.io/preserve-host-header: "true"
+    appgw.ingress.kubernetes.io/ssl-redirect: "{{ .Values.ssl_redirect }}"
+    kubernetes.io/ingress.class: "{{ .Values.ingress_class }}"
+  name: {{ .Values.superset.name }}
+  namespace: {{ .Values.superset.namespace }}
+spec:
+  tls:
+  - secretName: {{ .Values.cert_secret_name }}
+    hosts:
+    - {{ .Values.domain }}
+  rules:
+  - host: {{ .Values.domain }}
+    http:
+      paths:
+      {{- range .Values.superset.paths }}
+      - path: {{ .path }}
+        pathType: {{ $.Values.superset.path_type }}
+        backend:
+          service:
+            name: {{ $.Values.superset.service_name }}
+            port:
+              number: {{ $.Values.superset.service_port }}
+      {{- end }}

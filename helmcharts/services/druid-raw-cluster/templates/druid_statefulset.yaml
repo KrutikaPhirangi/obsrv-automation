@@ -94,7 +94,7 @@ spec:
     druid.indexer.logs.disableAcl=true
 
     {{- if eq .Values.druid_deepstorage_type "azure" }}
-    druid.indexer.logs.container={{ .Values.global.container }}
+    druid.indexer.logs.container={{ .Values.global.azure_storage_container }}
     {{- end }}
 
     {{- if eq .Values.druid_deepstorage_type "s3" }}
@@ -152,7 +152,6 @@ spec:
       runtime.properties: |
         druid.service={{ .Values.druid_broker_service }}
         # HTTP server threads
-        #testing
         druid.broker.http.numConnections={{ .Values.druid_broker_http_numConnections }}
         druid.server.http.numThreads={{ .Values.druid_broker_http_numThreads }}
         # Processing threads and buffers
@@ -186,13 +185,12 @@ spec:
       #          averageUtilization: 50
 
       resources:
-      {{- toYaml .Values.druid_brokers.resources | nindent 8 }}
-        # requests:
-        #   memory: {{ .Values.druid_broker_pod_memory_request }}
-        #   cpu: {{ .Values.druid_broker_pod_cpu_request }}
-        # limits:
-        #   memory: {{ .Values.druid_broker_pod_memory_limit }}
-        #   cpu: {{ .Values.druid_broker_pod_cpu_limit }}
+        requests:
+          memory: {{ .Values.druid_broker_pod_memory_request }}
+          cpu: {{ .Values.druid_broker_pod_cpu_request }}
+        limits:
+          memory: {{ .Values.druid_broker_pod_memory_limit }}
+          cpu: {{ .Values.druid_broker_pod_cpu_limit }}
 
     coordinators:
       # Optionally specify for running coordinator as Deployment
@@ -201,6 +199,7 @@ spec:
       druid.port: {{ .Values.druid_coordinator_port }}
       podLabels:
         system.querying: "true"
+        system.ingestion: "true"
       nodeConfigMountPath: "/opt/druid/conf/druid/cluster/master/coordinator-overlord"
       replicas: {{ .Values.druid_coordinator_replicas }}
       runtime.properties: |
@@ -219,13 +218,12 @@ spec:
           port: {{ .Values.druid_coordinator_port }}
 
       resources:
-        {{- toYaml .Values.druid_coordinator.resources | nindent 8 }}
-        # requests:
-        #   memory: {{ .Values.druid_coordinator_pod_memory_request }}
-        #   cpu: {{ .Values.druid_coordinator_pod_cpu_request }}
-        # limits:
-        #   memory: {{ .Values.druid_coordinator_pod_memory_limit }}
-        #   cpu: {{ .Values.druid_coordinator_pod_cpu_limit }}
+        requests:
+          memory: {{ .Values.druid_coordinator_pod_memory_request }}
+          cpu: {{ .Values.druid_coordinator_pod_cpu_request }}
+        limits:
+          memory: {{ .Values.druid_coordinator_pod_memory_limit }}
+          cpu: {{ .Values.druid_coordinator_pod_cpu_limit }}
 
     overlords:
       # Optionally specify for running coordinator as Deployment
@@ -236,6 +234,7 @@ spec:
       replicas: {{ .Values.druid_overlord_replicas }}
       podLabels:
         system.querying: "true"
+        system.ingestion: "true"
       runtime.properties: |
         druid.service={{ .Values.druid_overlord_service }}
         druid.indexer.queue.startDelay={{ .Values.druid_indexer_queue_startDelay }}
@@ -253,13 +252,12 @@ spec:
           port: {{ .Values.druid_overlord_port }}
 
       resources:
-        {{- toYaml .Values.druid_overlord.resources | nindent 8 }}
-        # requests:
-        #   memory: {{ .Values.druid_overlord_pod_memory_request }}
-        #   cpu: {{ .Values.druid_overlord_pod_cpu_request }}
-        # limits:
-        #   memory: {{ .Values.druid_overlord_pod_memory_limit }}
-        #   cpu: {{ .Values.druid_overlord_pod_cpu_limit }}
+        requests:
+          memory: {{ .Values.druid_overlord_pod_memory_request }}
+          cpu: {{ .Values.druid_overlord_pod_cpu_request }}
+        limits:
+          memory: {{ .Values.druid_overlord_pod_memory_limit }}
+          cpu: {{ .Values.druid_overlord_pod_cpu_limit }}
 
     historicals:
       nodeType: "historical"
@@ -314,16 +312,15 @@ spec:
               - ReadWriteOnce
             resources:
               requests:
-                storage: {{ .Values.druid_historical.persistence.size }}
+                storage: {{ .Values.druid_historical_persistent_volume_size }}
 
       resources:
-        {{- toYaml .Values.druid_historical.resources | nindent 8 }}
-        # requests:
-        #   memory: {{ .Values.druid_historical_pod_memory_request }}
-        #   cpu: {{ .Values.druid_historical_pod_cpu_request }}
-        # limits:
-        #   memory: {{ .Values.druid_historical_pod_memory_limit }}
-        #   cpu: {{ .Values.druid_historical_pod_cpu_limit }}
+        requests:
+          memory: {{ .Values.druid_historical_pod_memory_request }}
+          cpu: {{ .Values.druid_historical_pod_cpu_request }}
+        limits:
+          memory: {{ .Values.druid_historical_pod_memory_limit }}
+          cpu: {{ .Values.druid_historical_pod_cpu_limit }}
 
     # middlemanagers:
     #   nodeType: "middleManager"
@@ -443,15 +440,14 @@ spec:
               - ReadWriteOnce
             resources:
               requests:
-                storage: {{ .Values.druid_indexer.persistence.size }}
+                storage: {{ .Values.druid_indexer_persistent_volume_size }}
       resources:
-        {{- toYaml .Values.druid_indexer.resources | nindent 8 }}
-        # requests:
-        #   memory: {{ .Values.druid_indexer_pod_memory_request }}
-        #   cpu: {{ .Values.druid_indexer_pod_cpu_request }}
-        # limits:
-        #   memory: {{ .Values.druid_indexer_pod_memory_limit }}
-        #   cpu: {{ .Values.druid_indexer_pod_cpu_limit }}
+        requests:
+          memory: {{ .Values.druid_indexer_pod_memory_request }}
+          cpu: {{ .Values.druid_indexer_pod_cpu_request }}
+        limits:
+          memory: {{ .Values.druid_indexer_pod_memory_limit }}
+          cpu: {{ .Values.druid_indexer_pod_cpu_limit }}
 
     routers:
       nodeType: "router"
@@ -460,6 +456,7 @@ spec:
       replicas: {{ .Values.druid_router_replicas }}
       podLabels:
         system.querying: "true"
+        system.ingestion: "true"
       services:
         - spec:
             type: {{ .Values.druid_router_service_type }}
@@ -515,10 +512,9 @@ spec:
           port: {{ .Values.druid_router_plaintextPort }}
 
       resources:
-        {{- toYaml .Values.druid_router.resources | nindent 8 }}
-        # requests:
-        #   memory: {{ .Values.druid_router_pod_memory_request }}
-        #   cpu: {{ .Values.druid_router_pod_cpu_request }}
-        # limits:
-        #   memory: {{ .Values.druid_router_pod_memory_limit }}
-        #   cpu: {{ .Values.druid_router_pod_cpu_limit }}
+        requests:
+          memory: {{ .Values.druid_router_pod_memory_request }}
+          cpu: {{ .Values.druid_router_pod_cpu_request }}
+        limits:
+          memory: {{ .Values.druid_router_pod_memory_limit }}
+          cpu: {{ .Values.druid_router_pod_cpu_limit }}

@@ -1,0 +1,33 @@
+domain: "ingress.example"
+ingress_class: azure/application-gateway
+cert_secret_name: "sahamati-ct-registry-tls-sandbox"
+ssl_redirect: "true"
+cluster_issuer: letsencrypt-prod
+
+# List of routes
+webconsole:
+  name: webconsole
+  namespace: web-console
+  path_type: Prefix
+  service_name: "web-console"
+  service_port: 3000
+  paths:
+  - path: "/console"
+
+grafana:
+  name: grafana
+  namespace: monitoring
+  path_type: Prefix
+  service_name: "grafana"
+  service_port: 80
+  paths:
+  - path: "/grafana"
+
+superset:
+  name: superset
+  namespace: superset
+  path_type: Prefix
+  service_name: "superset"
+  service_port: 8088
+  paths:
+  - path: "/"

@@ -353,7 +353,44 @@ baseconfig: |
     port = "{{ .Values.global.cassandra.port }}"
   }
 
-
+# !!! Don't override the resources here. It's just a template
+# Proper way to override resouce is to
+# flink_jobs:
+#   master-data-processor:
+#     resources:
+#       taskmanager:
+#         resources:
+#           requests:
+#             cpu: 100m
+#             memory: 100Mi
+#           limits:
+#             cpu: 1
+#             memory: 1024Mi
+#       jobmanager:
+#         resources:
+#           requests:
+#             cpu: 100m
+#             memory: 100Mi
+#           limits:
+#             cpu: 1
+#             memory: 1024Mi
+dummy_flink_resource: &flink_resources
+  taskmanager:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 100Mi
+      limits:
+        cpu: 1
+        memory: 1024Mi
+  jobmanager:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 100Mi
+      limits:
+        cpu: 1
+        memory: 1024Mi
 
 serviceMonitor: &serviceMonitor
   jobmanager:
@@ -375,15 +412,15 @@ serviceMonitor: &serviceMonitor
 
 flink_jobs:
   unified-pipeline:
-    enabled: false
+    enabled: true
 
     registry: sanketikahub
     repository: unified-pipeline
     tag: 1.0.0-GA
     imagePullSecrets: []
 
-    job_classname: org.sunbird.obsrv.pipeline.task.UnifiedPipelineStreamTask
-    
+    job_classname: in.sanketika.obsrv.pipeline.task.UnifiedPipelineStreamTask
+    resources: *flink_resources
     serviceMonitor: *serviceMonitor
 
     config: |+
@@ -426,7 +463,7 @@ flink_jobs:
     flink-conf: |+
       jobmanager.memory.flink.size: 1024m
       taskmanager.memory.flink.size: 1024m
-      taskmanager.numberOfTaskSlots:1
+      taskmanager.numberOfTaskSlots: 2
       jobmanager.numberOfTaskSlots: 1
       parallelism.default: 1
       jobmanager.execution.failover-strategy: region
@@ -445,7 +482,7 @@ flink_jobs:
     imagePullSecrets: []
 
     job_classname: in.sanketika.obsrv.transformer.task.TransformerStreamTask
-    
+    resources: *flink_resources
     serviceMonitor: *serviceMonitor
 
     config: |+
@@ -467,7 +504,7 @@ flink_jobs:
     flink-conf: |+
       jobmanager.memory.flink.size: 1024m
       taskmanager.memory.flink.size: 1024m
-      taskmanager.numberOfTaskSlots:1
+      taskmanager.numberOfTaskSlots: 2
       jobmanager.numberOfTaskSlots: 1
       parallelism.default: 1
       jobmanager.execution.failover-strategy: region
@@ -478,7 +515,7 @@ flink_jobs:
       state.savepoints.dir: file:///tmp
 
   master-data-processor-ext:
-    enabled: false
+    enabled: true
 
     registry: sanketikahub
     repository: master-data-processor-ext
@@ -486,72 +523,7 @@ flink_jobs:
     imagePullSecrets: []
 
     job_classname: in.sanketika.obsrv.pipeline.task.MasterDataProcessorStreamTask
-    
-    serviceMonitor: *serviceMonitor
-
-    config: |+
-      include file("/data/flink/conf/baseconfig.conf")
-      kafka {
-        input.topic = ${job.env}".masterdata.ingest"
-        output.raw.topic = ${job.env}".masterdata.raw"
-        output.extractor.duplicate.topic = ${job.env}".masterdata.failed"
-        output.failed.topic = ${job.env}".masterdata.failed"
-        output.batch.failed.topic = ${job.env}".masterdata.failed"
-        event.max.size = "1048576" # Max is only 1MB
-        output.invalid.topic = ${job.env}".masterdata.failed"
-        output.unique.topic = ${job.env}".masterdata.unique"
-        output.duplicate.topic = ${job.env}".masterdata.failed"
-        output.denorm.topic = ${job.env}".masterdata.denorm"
-        output.transform.topic = ${job.env}".masterdata.transform"
-        output.transform.failed.topic = ${job.env}".masterdata.transform.failed"
-        stats.topic = ${job.env}".masterdata.stats"
-        groupId = ${job.env}"-masterdata-pipeline-group"
-
-        producer {
-          max-request-size = 5242880
-        }
-      }
-
-      task {
-        window.time.in.seconds = 5
-        window.count = 30
-        window.shards = 1400
-        consumer.parallelism = 1
-        downstream.operators.parallelism = 1
-      }
-
-      redis {
-        database {
-          extractor.duplication.store.id = 1
-          preprocessor.duplication.store.id = 2
-          key.expiry.seconds = 3600
-        }
-      }
-
-      dataset.type = "master-dataset"
-    flink-conf: |+
-      jobmanager.memory.flink.size: 1024m
-      taskmanager.memory.flink.size: 1024m
-      taskmanager.numberOfTaskSlots: 1
-      jobmanager.numberOfTaskSlots: 1
-      parallelism.default: 1
-      jobmanager.execution.failover-strategy: region
-      taskmanager.memory.network.fraction: 0.1
-      scheduler-mode: reactive
-      heartbeat.timeout: 8000
-      heartbeat.interval: 5000
-      state.savepoints.dir: file:///tmp
-
-  cache-indexer:
-    enabled: false
-
-    registry: sanketikahub
-    repository: cache-indexer
-    tag: 1.0.0-GA
-    imagePullSecrets: []
-
-    job_classname: org.sunbird.obsrv.streaming.CacheIndexerStreamTask
-    
+    resources: *flink_resources
     serviceMonitor: *serviceMonitor
 
     config: |+

@@ -155,8 +155,8 @@ druid_historical_max_direct_size: 2560M
 
 druid_historical_pod_memory_request: 3000Mi
 druid_historical_pod_memory_limit: 3700Mi
-druid_historical_pod_cpu_request: 800m
-druid_historical_pod_cpu_limit: 1
+druid_historical_pod_cpu_request: 500m
+druid_historical_pod_cpu_limit: 800m
 
 # HTTP server threads
 druid_historical_http_numThreads: 50
@@ -234,10 +234,10 @@ druid_indexer_fork_property_druid_server_http_numThreads: 25 # max(10, (Number o
 
 # druid_indexer_pod_memory_request: 512Mi
 # druid_indexer_pod_memory_limit: 768Mi
-druid_indexer_pod_memory_request: 10Gi
-druid_indexer_pod_memory_limit: 11Gi
-druid_indexer_pod_cpu_request: 1
-druid_indexer_pod_cpu_limit: 1
+druid_indexer_pod_memory_request: 5Gi
+druid_indexer_pod_memory_limit: 6Gi
+druid_indexer_pod_cpu_request: 350m
+druid_indexer_pod_cpu_limit: 500m
 druid_indexer_numConcurrentMerges: 1
 
 druid_indexer_persistent_volume_size: 20Gi
@@ -268,7 +268,7 @@ druid_router_max_heap_size: 512M
 druid_router_pod_memory_request: 256Mi
 druid_router_pod_memory_limit: 512Mi
 druid_router_pod_cpu_request: 250m
-druid_router_pod_cpu_limit: 512m
+druid_router_pod_cpu_limit: 300m
 
 # HTTP proxy
 druid_router_http_numConnections: 25
@@ -310,7 +310,7 @@ zookeeper:
       cpu: 256m
     limits:
       memory: 256Mi
-      cpu: 512m
+      cpu: 256m
 
   tickTime: 2000
   initLimit: 10

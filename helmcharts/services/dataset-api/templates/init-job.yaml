@@ -3,7 +3,7 @@ kind: ServiceAccount
 metadata:
   annotations:
     "helm.sh/hook": pre-install,pre-upgrade
-  name: {{ include "common.names.fullname" . }}-grafana-token-job-sa
+  name: wc-grafana-token-job-sa
   namespace: {{ include "base.namespace" . }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -11,7 +11,7 @@ kind: Role
 metadata:
   annotations:
     "helm.sh/hook": pre-install,pre-upgrade
-  name: {{ include "common.names.fullname" . }}-grafana-token-job-role
+  name: wc-grafana-token-job-role
   namespace: {{ include "base.namespace" . }}
 rules:
   - apiGroups: [""]
@@ -23,20 +23,20 @@ kind: RoleBinding
 metadata:
   annotations:
     "helm.sh/hook": pre-install,pre-upgrade
-  name: {{ include "common.names.fullname" . }}-grafana-token-job-rolebinding
+  name: wc-grafana-token-job-rolebinding
   namespace: {{ include "base.namespace" . }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: {{ include "common.names.fullname" . }}-grafana-token-job-role
+  name: wc-grafana-token-job-role
 subjects:
   - kind: ServiceAccount
-    name: {{ include "common.names.fullname" . }}-grafana-token-job-sa
+    name: wc-grafana-token-job-sa
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "common.names.fullname" . }}-create-grafana-secret
+  name: wc-create-grafana-secret
   namespace: {{ include "base.namespace" . }}
   labels:
     app: grafana
@@ -46,9 +46,9 @@ metadata:
 spec:
   template:
     spec:
-      serviceAccountName: {{ include "common.names.fullname" . }}-grafana-token-job-sa
+      serviceAccountName: wc-grafana-token-job-sa
       containers:
-        - name: {{ include "common.names.fullname" . }}-create-token
+        - name: wc-create-token
           image: bitnami/kubectl:1.21
           command: ["/bin/sh"]
           args:

@@ -287,11 +287,27 @@ loki:
       selector: null
 
 
-
+grafana:
+  resources:
+    limits:
+      cpu: 0.2
+      memory: 256Mi
+    requests:
+      cpu: 0.1
+      memory: 128Mi
+  persistence:
+    type: pvc
+    # storageClassName: default
+    accessModes:
+      - ReadWriteOnce
+    size: 10Gi
+    # annotations: {}
+    finalizers:
+      - kubernetes.io/pvc-protection
 
 #druid-raw-cluster need changes in yaml files
 druid-raw-cluster:
-  druid_brokers:
+  druid_brokers_pod:
     resources:
       limits:
         cpu: 500m
@@ -300,7 +316,7 @@ druid-raw-cluster:
         cpu: 250m
         memory: 128Mi
       
-  druid_coordinator:
+  druid_coordinator_pod:
     resources:
       limits:
         cpu: 500m
@@ -309,7 +325,7 @@ druid-raw-cluster:
         cpu: 250m
         memory: 500Mi
 
-  druid_overlord:
+  druid_overlord_pod:
     resources:
       limits:
         cpu: 500m
@@ -318,7 +334,7 @@ druid-raw-cluster:
         cpu: 250m
         memory: 256Mi
 
-  druid_historical:
+  druid_historical_pod:
     resources:
       limits:
         cpu: 1
@@ -331,13 +347,13 @@ druid-raw-cluster:
         - ReadWriteOnce
       size: 50Gi
 
-  druid_middlemanager:
+  druid_middlemanager_pod:
     persistence:
       accessModes:
         - ReadWriteOnce
       size: 1Gi
 
-  druid_indexer:
+  druid_indexer_pod:
     resources:
       limits:
         cpu: 1
@@ -350,7 +366,7 @@ druid-raw-cluster:
         - ReadWriteOnce
       size: 20Gi
 
-  druid_router:
+  druid_router_pod:
     resources:
       limits:
         cpu: 512m
@@ -373,35 +389,24 @@ druid-raw-cluster:
       size: 1Gi
         
 flink:
- flink_resource: &flink_resources
-    taskmanager:
+  flink_jobs:
+    merget-pipeline:
       resources:
-        requests:
-          cpu: 100m
-          memory: 100Mi
         limits:
-          cpu: 1
+          cpu: 0.25
           memory: 1024Mi
-    jobmanager:
+        requests:
+          cpu: 0.25
+          memory: 1024Mi
+    master-data-processor:
       resources:
-        requests:
-          cpu: 100m
-          memory: 100Mi
         limits:
-          cpu: 1
+          cpu: 0.5
           memory: 1024Mi
- flink_jobs:
-    unified-pipeline:
-      resources: *flink_resources
-    transformer-ext:
-      resources: *flink_resources
-    master-data-processor-ext:
-    resources: *flink_resources
-    cache-indexer:
-        resources: *flink_resources
+        requests:
+          cpu: 0.5
+          memory: 1024Mi
 
-    
-  
 kafka-message-exporter:
   resources:
     limits:
@@ -425,7 +430,7 @@ kube-prometheus-stack:
     resources:
       limits:
         cpu: 0.1
-        memory: 512Mi
+        memory: 256Mi
       requests:
         cpu: 0.1
         memory: 128Mi
@@ -447,42 +452,15 @@ kube-prometheus-stack:
           cpu: 0.5
           memory: 512Mi
           #issue getting resources
-  grafana:
-    resources:
-      limits:
-        cpu: 0.2
-        memory: 1024Mi
-      requests:
-        cpu: 0.1
-        memory: 500Mi
-    persistence:
-      type: pvc
-      # storageClassName: default
-      accessModes:
-        - ReadWriteOnce
-      size: 10Gi
-      # annotations: {}
-      finalizers:
-        - kubernetes.io/pvc-protection        
 
-  kube-state-metrics:
-    resources:
-      limits:
-        cpu: 0.1
-        memory: 256Mi
-      requests:
-        cpu: 0.1
-        memory: 128Mi
-
-  prometheus-node-exporter:
-    resources:
-      limits:
-        cpu: 100m
-        memory: 64Mi
-      requests:
-        cpu: 100m
-        memory: 32Mi
-        
+kube-state-metrics:
+  resources:
+    limits:
+      cpu: 0.1
+      memory: 256Mi
+    requests:
+      cpu: 0.1
+      memory: 128Mi
 
 kubernetes-reflector:
   resources:
@@ -502,6 +480,14 @@ postgresql-exporter:
       cpu: 50m
       memory: 128Mi
 
+prometheus-node-exporter:
+  resources:
+    limits:
+      cpu: 100m
+      memory: 64Mi
+    requests:
+      cpu: 100m
+      memory: 32Mi
 
 secor:
   resources:
@@ -511,7 +497,7 @@ secor:
     requests:
       cpu: 128m
       memory: 512Mi
-      
+      #issue running helm templete
   
 spark:
   master:
@@ -578,19 +564,10 @@ dataset-api:
   resources:
     limits:
       cpu: 0.5
-      memory: 2048Mi
-    requests:
-      cpu: 0.5
-      memory: 1024Mi
-
-config-api:
-  resources:
-    limits:
-      cpu: 0.5
       memory: 1024Mi
     requests:
       cpu: 0.5
-      memory: 512Mi      
+      memory: 512Mi
 
 web-console:
   resources:
@@ -636,60 +613,3 @@ volume-autoscaler:
     requests:
       cpu: 0.05
       memory: 100Mi
-
-lakehouse-connector:  
-  jobmanager:
-    cpu_requests: 1
-    cpu_limits: 1
-    memory_requests: 1024Mi
-    memory_limits: 1024Mi
-
-  taskmanager:
-    cpu_requests: 1
-    cpu_limits: 1
-    memory_requests: 1024Mi
-    memory_limits: 2300Mi 
-
-trino: 
-  coordinator:  
-    resources: 
-      limits:
-        cpu: 1
-        memory: 1024Mi
-      requests:
-        cpu: 1
-        memory: 1024Mi
-  worker:
-    resources: 
-      limits:
-        cpu: 1
-        memory: 1024Mi
-      requests:
-        cpu: 1
-        memory: 1024Mi
-
-s3-exporter: 
-  resources:
-    limits:
-      cpu: 50m
-      memory: 128Mi
-    requests:
-      cpu: 50m
-      memory: 128Mi
-
-nlq-api:
-  resources:
-    requests:
-      cpu: 0.5
-      memory: 512Mi
-    limits:
-      cpu: 0.5
-      memory: 1Gi
-hms:
-  resources:
-    limits:
-      cpu: 100m
-      memory: 250Mi
-    requests:
-      cpu: 100m
-      memory: 250Mi

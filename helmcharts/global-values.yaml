@@ -1,5 +1,5 @@
 defaults:
-  env: &env "dev"
+  env: &env "sandbox"
   building-block: &building-block "obsrv"
   encryption_key: &encryption-key "strong_encryption_key_to_encrypt"
   namespaces:
@@ -15,19 +15,16 @@ defaults:
     secor_namespace: &secor-namespace "secor"
     command_api_namespace: &command-api-namespace "command-api"
     dataset_api_namespace: &dataset-api-namespace "dataset-api"
-    config_api_namespace: &config-api-namespace "config-api"
     kubernetes_reflector_namespace: &kubernetes-reflector-namespace "kubernetes-reflector"
     submit_ingestion_namespace: &submit-ingestion-namespace "submit-ingestion"
     kong_namespace: &kong-namespace "kong"
     kong_ingress_namespace: &kong-ingress-namespace "kong-ingress"
-    system_rules_ingestor: &system-rules-ingestor-namespace "system-rules-ingestor"
+    ingress_namespace: &ingress-namespace "ingress"
+    system_rules_ingestor: &system-rules-ingestor-ns "system-rules-ingestor"
     web_console_namesapce: &web-console-namesapce "web-console"
     cert_manager_namespace: &cert-manager-namespace "cert-manager"
     velero_namespace: &velero-namespace "velero"
     volume_autoscaler_namespace: &volume-autoscaler-namespace "volume-autoscaler"
-    hms_namespace: &hms_namespace "hms"
-    trino_namespace: &trino_namespace "trino"
-    nlq_api_namespace: &nlq_api_namespace "nlq"
 
   postgres:
     pghost: &pghost "postgresql-hl.postgresql.svc.cluster.local"
@@ -43,12 +40,17 @@ defaults:
     hms_db_name: &psql-hms-db "hms"
     hms_user_name: &psql-hms-user "hms"
     hms_user_password: &psql-hms-pwd "hms123"
+    central_registry_db_name: &psql-cr-db "central_registry"
+    central_registry_user_name: &psql-cr-user "centralregistry"
+    central_registry_user_password: &psql-cr-pwd "centralregistry123"
 
   grafana:
     grafana_admin_user: &grafana-admin-user "admin"
     grafana_admin_password: &grafana-admin-password "adminpassword"
     grafana_auth_token: &grafana-auth-token "YWRtaW46YWRtaW5wYXNzd29yZA=="
     grafana_url: &grafana-url "http://grafana.monitoring.svc.cluster.local"
+
+
 
   kafka-topics:
     ingestTopic: &ingestTopic "dev.ingest"
@@ -59,25 +61,46 @@ defaults:
     hudiConnectorTopic: &hudiConnectorTopic "dev.hudi.connector.in"
     connectorsMetricTopic: &connectorsMetricTopic "obsrv-connectors-metrics"
     connectorsFailedTopic: &connectorsFailedTopic "connectors.failed"
+  system_stats_topic: &ss-kafka-topic "sandbox.stats"
+  masterdata_system_stats_topic: &masterdata-ss-kafka-topic "sandbox.masterdata.stats"
+
+  kafka-topics: &kafka-topics
+    - name: "sandbox.ingest"
+      partitions: 1
+      replicationFactor: 1
+    - name: "sandbox.masterdata.ingest"
+      partitions: 1
+      replicationFactor: 1
+    - name: "system.telemetry.events"
+      partitions: 1
+      replicationFactor: 1
+    - name: *ss-kafka-topic
+      partitions: 1
+      replicationFactor: 1
+    - name: *masterdata-ss-kafka-topic
+      partitions: 1
+      replicationFactor: 1
+    - name: "dev.hudi.connector.in"
+      partitions: 1
+      replicationFactor: 1
 
   # config_service_host: &config-service-host "http://command-api.command-api.svc.cluster.local"
   # druid_host: &global-druid-host "http://druid-raw-routers.druid-raw.svc.cluster.local"
   druid_url: &global-druid-url "http://druid-raw-routers.druid-raw.svc:8888"
   dataset_service_url: &dataset-service-url "http://dataset-api.dataset-api.svc.cluster.local:3000"
-  config_service_url: &config-service-url "http://config-api.config-api.svc.cluster.local:4000"
 
   cron_schedule: &cron-schedule "0 0 * * *"
-  druid_router_host: &druid-router-host "druid-raw-routers.druid-raw.svc.cluster.local"
+  druid_router_host: &druid-router-host "druid-raw-routers.druid-raw.svc.cluster.local:8888"
   druid_indexer_host: &druid-indexer-host "druid-raw-indexers.druid-raw.svc.cluster.local"
 
   redirection_auth_path: &redirection_auth_path ""
-  domain: &domain "<fill-value>.sslip.io"  # Update with the Allocation ID of the Elastic IP 
-
-
+  domain: &domain "4.188.93.89.sslip.io"
 
   ssl_enabled: &ssl_enabled true
 
-  domain_admin_email: &domain_admin_email "test@obsrv-ai.com"
+  domain_admin_email: &domain_admin_email "ravi@obsrv.ai"
+
+  domain_proxy: &domain_proxy "4.188.93.89.sslip.io"
 
 #coredb-charts/
 kafka: &kafka
@@ -93,35 +116,33 @@ kafka: &kafka
   hudiConnectorTopic: *hudiConnectorTopic
   connectorsMetricTopic: *connectorsMetricTopic
   connectorsFailedTopic: *connectorsFailedTopic
-  numPartitions: 4
+
   provisioning:
-    numPartitions: 4
-    replicationFactor: 1
-    topics:
+    topics: 
       - name: *ingestTopic
-        partitions: 4
+        partitions: 1
         replicationFactor: 1
       - name: *masterdataIngestTopic
-        partitions: 4
+        partitions: 1
         replicationFactor: 1
       - name: *telemetryEventsTopic
-        partitions: 4
+        partitions: 1
         replicationFactor: 1
       - name: *system_stats_topic
-        partitions: 4
+        partitions: 1
         replicationFactor: 1
       - name: *masterdata_system_stats_topic
-        partitions: 4
+        partitions: 1
         replicationFactor: 1
       - name: *hudiConnectorTopic
-        partitions: 4
+        partitions: 1
         replicationFactor: 1
       - name: *connectorsMetricTopic
-        partitions: 4
+        partitions: 1
         replicationFactor: 1
       - name: *connectorsFailedTopic
-        partitions: 4
-        replicationFactor: 1
+        partitions: 1
+        replicationFactor: 1        
 
 
 zookeeper: &zookeeper
@@ -158,6 +179,11 @@ postgresql: &postgresql
     name: *psql-druid-db
     user: *psql-druid-user
     password: *psql-druid-pwd
+  
+  cr:
+    name: *psql-cr-db
+    user: *psql-cr-user
+    password: *psql-cr-pwd
 
   hms:
     name: *psql-hms-db
@@ -175,25 +201,17 @@ postgresql: &postgresql
       password: *pgpassword
       scripts:
         00_create_superset_db.sql: |
-          CREATE DATABASE superset;
+          CREATE DATABASE IF NOT EXISTS superset;
         01_create_druid_raw_db.sql: |
           CREATE DATABASE druid_raw;
         02_create_obsrv_db.sql: |
           CREATE DATABASE obsrv;
-        03_create_pg_stat_statements_db.sql: |
-          CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+        03_create_pg_stat_statements_db.sql: |  
+          CREATE EXTENSION IF NOT EXISTS pg_stat_statements; 
         04_create_hms_db.sql: |
           CREATE DATABASE hms;
     extendedConfiguration: |
       password_encryption = md5
-      shared_preload_libraries = 'pg_stat_statements' # (change requires restart)
-      pg_stat_statements.max = 10000
-      pg_stat_statements.track = all
-      log_statement = 'all'
-      logging_collector = 'on'
-      log_min_duration_statement = 0
-      log_filename = 'postgresql.log'
-      log_directory='/opt/bitnami/postgresql/logs'
     persistence:
       size: 10Gi
       enabled: true
@@ -201,7 +219,7 @@ postgresql: &postgresql
 
 druid: &druid
   namespace: *druid-namespace
-  host: "druid-raw-routers.druid-raw.svc.cluster.local"
+  host: "http://druid-raw-routers.druid-raw.svc.cluster.local"
   port: 8888
   supervisorEndpoint: "indexer/v1/supervisor"
 
@@ -223,8 +241,8 @@ flink: &flink
 #migrations/charts/
 postgresql-migration:
   namespace: *postgresql-namespace
-  superset_oauth_clientid: &superset_oauth_clientid "451058501-dev.oauth.obsrv.ai"
-  superset_oauth_client_secret: &superset_oauth_client_secret "luXRJMh"
+  superset_oauth_clientid: "451058501-dev.oauth.obsrv.ai"
+  superset_oauth_client_secret: "luXRJMh"
   kong_ingress_domain: *domain
   gf_auth_generic_oauth_client_id: "528806583-dev.oauth.obsrv.ai"
   gf_auth_generic_oauth_client_secret: "el642dcXd1P3v6i+hODnGrUKx9ZSWAlmXWZaEoZQI7/R3NUGQlLTnNCV"
@@ -243,6 +261,15 @@ prometheus: &prometheus
 loki:
   namespace: *loki-namespace
 
+grafana:
+  fullnameOverride: "grafana"
+  namespaceOverride: *monitoring-namespace #TODO: check why namespace  doesn't work here
+  env:
+    GF_AUTH_GENERIC_OAUTH_AUTH_URL: "https://4.188.93.89.sslip.io/console/api/oauth/v1/authorize"
+    GF_AUTH_GENERIC_OAUTH_TOKEN_URL: "https://4.188.93.89.sslip.io/console/api/oauth/v1/token"
+    GF_AUTH_GENERIC_OAUTH_API_URL: "https://4.188.93.89.sslip.io/console/api/oauth/v1/userinfo"
+    GF_SECURITY_ADMIN_PASSWORD: *grafana-admin-password
+    GF_SECURITY_ADMIN_USER: *grafana-admin-user 
 
 druid-raw-cluster: &druid-raw-cluster
   namespace: *druid-namespace
@@ -257,38 +284,15 @@ druid-operator:
 
 kafka-message-exporter:
   namespace: *kafka-namespace
-  exporterEnv:
+  exporterEnv: 
     KAFKA_BROKERS: *kafka-bootstrap-server
     KAFKA_CONSUMER_GROUP_ID: obsrv-kafka-message-exporter
 
 kube-prometheus-stack:
   namespaceOverride: *monitoring-namespace
-  prometheus-windows-exporter:
-   namespaceOverride: *monitoring-namespace
-  kube-state-metrics:
-    namespaceOverride: *monitoring-namespace
-  prometheus-node-exporter:
-    namespaceOverride: *monitoring-namespace
-  grafana:
-    fullnameOverride: "grafana"
-    namespaceOverride: *monitoring-namespace 
-    env:
-      GF_SECURITY_ADMIN_PASSWORD: *grafana-admin-password
-      GF_SECURITY_ADMIN_USER: *grafana-admin-user
-    grafana.ini:
-      smtp:
-        enabled: true
-        host: ""
-        user: ""
-        password: ""
-        from_address: ""
-        cert_file: ""
-        key_file: ""
-        ehlo_identity: ""
-        startTLS_policy: ""
-        skip_verify: true
-        from_name: "Grafana"    
-  
+
+kube-state-metrics:
+  namespaceOverride: *monitoring-namespace
 
 kubernetes-reflector:
   namespace: *kubernetes-reflector-namespace
@@ -301,22 +305,11 @@ postgresql-backup:
   PGPASSWORD: *pgpassword
   initContainers: {}
 
-postgresql-exporter:
-  config:
-    datasource:
-      host: *pghost
-      user: *pguser
-      password: *pgpassword
-
+prometheus-node-exporter:
+  namespaceOverride: *monitoring-namespace
 
 spark: &spark
   namespace: *spark-namespace
-
-superset_oauth: &superset_oauth 
-  enabled: true
-  client_id: *superset_oauth_clientid
-  client_secret: *superset_oauth_client_secret
-  auth_token: "NDUxMDU4NTAxLWRldi5vYXV0aC5vYnNydi5haTpsdVhSSk1o"
 
 superset:
   namespace: *superset-namespace
@@ -329,12 +322,16 @@ superset:
       db_name: *psql-superset-db
       db_username: *psql-superset-user
       db_password: *psql-superset-pwd
-  oauth: 
-    <<: *superset_oauth
+
+  redis_url: *redis-url
+
+  web_console_base_url: *domain
+  superset_base_url: *domain
+  keycloak_base_url: *domain
+  redirection_auth: *redirection_auth_path
 
 command-api: &command-api
   namespace: *command-api-namespace
-  system_env: *env
 
 dataset-api: &dataset-api
   namespace: *dataset-api-namespace
@@ -343,14 +340,6 @@ dataset-api: &dataset-api
     GRAFANA_AUTH_TOKEN: *grafana-auth-token
     GRAFANA_ADMIN_URL: *grafana-url
 
-config-api: &config-api
-  namespace: *config-api-namespace
-  host: *config-service-url
-  env:
-    GRAFANA_AUTH_TOKEN: *grafana-auth-token
-    GRAFANA_ADMIN_URL: *grafana-url
-
-
 grafana-configs:
   namespace: *monitoring-namespace
 
@@ -358,7 +347,7 @@ submit-ingestion:
   namespace: *submit-ingestion-namespace
 
 system-rules-ingestor:
-  namespace: *system-rules-ingestor-namespace
+  namespace: *system-rules-ingestor-ns
   datasetServiceUrl: *dataset-service-url
   grafana:
     namespace: *monitoring-namespace
@@ -399,7 +388,6 @@ kong:
   podLabels:
     system.api: "true"
   proxy:
-    annotations: {}
     labels:
       system.api: "true"
   serviceMonitor:
@@ -414,75 +402,67 @@ kong-ingress-routes:
   namespace: *kong-ingress-namespace
   domain: *domain
 
+ingress-routes:
+  namesapce: *ingress-namespace
+  domain_proxy: *domain_proxy
+
 letsencrypt-ssl:
   enabled: *ssl_enabled
-  namespace: *web-console-namesapce
+  namespace: token-service
   cert_issuer_name: "letsencrypt-prod"
   # prod letsencrypt url, to be used on prod instances
   letsencrypt_server_url: "https://acme-v02.api.letsencrypt.org/directory"
   # letsencrypt_server_url: "https://acme-staging-v02.api.letsencrypt.org/directory"
-  domain: *domain
+  domain: api.sandbox.sahamati.org.in
   domain_admin_email: *domain_admin_email
 
 velero:
   namespace: *velero-namespace
   metrics:
-    service:
-      labels:
+    service: 
+      labels: 
         release: monitoring
     enabled: true
+    service: 
+      labels: 
+        release: monitoring
+    service: 
+      labels: 
+        release: monitoring
     additionalLabels:
       release: monitoring
     serviceMonitor:
       enabled: true
       namespace: *velero-namespace
+      autodetect: true
+      namespace: *velero-namespace
+      autodetect: true
       additionalLabels:
         release: monitoring
-      autodetect: true
+        release: monitoring
   schedules:
     obsrv-daily-backup:
       disabled: false
-      schedule: "0 0 * * *"
+      disabled: false
+      schedule:  "0 9,21 * * *"
       useOwnerReferencesInBackup: false
       template:
-        ttl: "247h"
+        ttl: "240h"
+        ttl: "240h"
         includedNamespaces: []
 
 volume-autoscaler:
   namespace: *volume-autoscaler-namespace
-  # How much full the disk must be before considering scaling
-  scale_above_percent: "80"
-  # How much to scale disks up by, as a percentage of their current size
-  scale_up_percent: "20"
-  # An minimum amount of bytes to scale up by (typically because providers like AWS only support 100GB increments in disk size)
-  scale_up_min_increment: "107374182400"
-  # An maximum amount of bytes to scale up by (helps prevent large disks from growing too fast/exponentially).  Set to 16TB by default, which basically means this is disabled
-  scale_up_max_increment: ""
-  # The maximum size of disks to scale up to.  By default on AWS using EBS volumes this is set to 16TB as that is the EBS Max disk size.
-  scale_up_max_size: ""
 
 hms:
-  namespace: *hms_namespace
   envVars:
-    DATABASE_HOST: *pghost
     DATABASE_DB: *psql-hms-db
     DATABASE_USER: *psql-hms-user
     DATABASE_PASSWORD: *psql-hms-pwd
-    THRIFT_PORT: "9083"
-
-trino:
-  namespace: *trino_namespace
-
-lakehouse-connector:
-  namespace: *flink_namespace
-
-nlq-api:
-  namespace: *nlq_api_namespace
-  openai_api_key: "<OPENAI_API_KEY>"
 
 global:
   env: *env
-  building_block: *building-block
+  building-block: *building-block
   encryption_key: *encryption-key
   domain: *domain
   ssl_enabled: *ssl_enabled

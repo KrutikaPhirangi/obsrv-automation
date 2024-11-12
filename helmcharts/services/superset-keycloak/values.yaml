@@ -1,0 +1,404 @@
+namespace: superset-keycloak
+
+keycloak_url: "https://tokens.sandbox.sahamati.org.in/auth"
+domain_base_url: "https://tokens.sandbox.sahamati.org.in"
+sso_admin_client_secret: "HWoubkaUWePw7vQ0IXBuoWOJx7RYui7u"
+
+# global:
+global:
+  postgresql:
+    user: "postgres"
+    password: "postgres"
+    host: "postgresql-hl.postgresql.svc.cluster.local"
+    port: 5432
+  redis_dedup:
+    host: redis-dedup.redis.svc.cluster.local
+    port: 6379
+
+postgresql:
+  db_name: "superset"
+  db_username: "superset"
+  db_password: "superset123"
+redis:
+  db_index: 3
+
+replicaCount: 1
+oauth_enabled: False
+
+adminUser:
+  username: "admin"
+  firstname: "Superset"
+  lastname: "Admin"
+  email: "admin@superset.com"
+  password: "admin123"
+
+oauth:
+  enabled: false
+  client_id: "client_id"
+  client_secret: "client_secret"
+  email_whitelist_regex: ""
+  whitelist_domain: ""
+  user_registration_role: "Gamma"
+
+runAsUser: 1000
+
+# Install additional packages and do any other bootstrap configuration in this script
+# For production clusters it's recommended to build own image with this step done in CI
+bootstrapScript: |
+  #!/bin/bash
+  #rm -rf /var/lib/apt/lists/* && \
+  pip install \
+    psycopg2-binary==2.9.1 \
+    itsdangerous==2.0.1 \
+    elasticsearch-dbapi==0.2.9 \
+    flask-oidc==1.4.0 \
+    Flask-OpenID==1.3.0 \
+    PyJWT==2.8.0 \
+    authlib \
+    redis==4.5.4 && \
+  if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi
+
+## The name of the secret which we will use to generate a superset_config.py file
+## Note: this secret must have the key superset_config.py in it and can include other files as well
+##
+configFromSecret: '{{ template "superset.fullname" . }}-config'
+
+## The name of the secret which we will use to populate env vars in deployed pods
+## This can be useful for secret keys, etc.
+##
+envFromSecret: '{{ template "superset.fullname" . }}-env'
+## This can be a list of template strings
+envFromSecrets: []
+
+## Extra environment variables that will be passed into pods
+##
+extraEnv: {}
+  # Extend timeout to allow long running queries.
+  # GUNICORN_TIMEOUT: 300
+
+
+   # OAUTH_HOME_DOMAIN: ..
+  # # If a whitelist is not set, any address that can use your OAuth2 endpoint will be able to login.
+  # #   this includes any random Gmail address if your OAuth2 Web App is set to External.
+  # OAUTH_WHITELIST_REGEX: ...
+
+## Extra environment variables to pass as secrets
+##
+extraSecretEnv: {}
+  # MAPBOX_API_KEY: ...
+  # # Google API Keys: https://console.cloud.google.com/apis/credentials
+  # GOOGLE_KEY: ...
+  # GOOGLE_SECRET: ...
+
+extraConfigs: {}
+  # datasources-init.yaml: |
+  #     databases:
+  #     - allow_csv_upload: true
+  #       allow_ctas: true
+  #       allow_cvas: true
+  #       database_name: example-db
+  #       extra: "{\r\n    \"metadata_params\": {},\r\n    \"engine_params\": {},\r\n    \"\
+  #         metadata_cache_timeout\": {},\r\n    \"schemas_allowed_for_csv_upload\": []\r\n\
+  #         }"
+  #       sqlalchemy_uri: example://example-db.local
+  #       tables: []
+
+extraSecrets:
+  client_secret.json: |
+    {  "web": {    "issuer": "{{ .Values.keycloak_url }}/realms/sahamati",    "auth_uri": "{{ .Values.keycloak_url }}/realms/sahamati/protocol/openid-connect/auth",    "client_id": "superset-user",    "client_secret": "{{ .Values.sso_admin_client_secret }}",    "redirect_uris": [      "{{ .Values.domain_base_url }}/*"    ],    "userinfo_uri": "{{ .Values.keycloak_url }}/realms/sahamati/protocol/openid-connect/userinfo",    "token_uri": "{{ .Values.keycloak_url }}/realms/sahamati/protocol/openid-connect/token",    "token_introspection_uri": "{{ .Values.keycloak_url }}/realms/sahamati/protocol/openid-connect/token/introspect"  }}
+  keycloak_security_manager.py: |
+    from flask_appbuilder.security.manager import AUTH_OID
+    from superset.security import SupersetSecurityManager
+    from flask_oidc import OpenIDConnect
+    from flask_appbuilder.security.views import AuthOIDView
+    from flask_login import login_user
+    from urllib.parse import quote
+    from flask_appbuilder.views import expose
+    from flask import request, redirect
+    import logging
+    import os
+    from flask import session , current_app
+    
+    class OIDCSecurityManager(SupersetSecurityManager):
+    
+        def __init__(self, appbuilder):
+            super(OIDCSecurityManager, self).__init__(appbuilder)
+            if self.auth_type == AUTH_OID:
+                self.oid = OpenIDConnect(self.appbuilder.get_app)
+            self.authoidview = AuthOIDCView
+
+        def oauth_user_info(self, provider, response=None):
+            # JWT claims from Keycloak
+            user_info = self.appbuilder.sm.oauth_user_info_provider(provider, response)
+            
+            # Map JWT claims to Superset user properties
+            return {
+                'username': user_info.get('preferred_username'),  # Map Keycloak username to Superset
+                'email': user_info.get('email'),  # Map Keycloak email to Superset
+                'first_name': user_info.get('given_name'),  # Map first name
+                'last_name': user_info.get('family_name'),  # Map last name
+                'roles': user_info.get('roles', []),  # Map Keycloak roles to Superset roles (optional)
+                'entity_meta': list(user_info.get('entity_meta', {}).keys())
+            }
+    
+    
+    class AuthOIDCView(AuthOIDView):
+    
+        @expose('/login/', methods=['GET', 'POST'])
+        def login(self, flag=True):
+            sm = self.appbuilder.sm
+            oidc = sm.oid
+            superset_roles = ["Admin", "Alpha", "Gamma", "Public", "granter", "sql_lab"]
+    
+            @self.appbuilder.sm.oid.require_login
+            def handle_login():
+                info = oidc.user_getinfo(['preferred_username', 'given_name', 'family_name', 'email', 'roles', 'secret-expiry-ts', 'entity_meta', 'EntityMetadata'])
+                email = oidc.user_getfield('email')
+                user = sm.auth_user_oid(email)
+                print(f"information service: {info}")
+                if user is None: 
+                    realm_roles = info.get('roles', {})  
+                    print(f"Realm roles: {realm_roles}")        
+                    roles = [role for role in superset_roles if role in info.get('roles', [])]
+                    roles.extend([role for role in realm_roles if role in superset_roles])
+                    role_mapping = {"default-roles-sahamati": "Gamma", "admin" : "Admin"}
+                    for role in realm_roles:
+                        if role in role_mapping:
+                            roles.append(role_mapping[role]); 
+                    logging.info(roles); 
+                    user = sm.add_user(info.get('email'), info.get('given_name', ''), info.get('family_name', ''),
+                                       info.get('email'), [sm.find_role(role) for role in roles])
+                entity_meta = info.get('entity_meta', {})
+                print(f"entity_meta: {entity_meta}")
+                # entity_keys = list(entity_meta.keys())
+                entity_keys = 'AA-SIMULATOR'
+                print(f"Extracted entity keys: {entity_keys}")     
+                if user:
+                    login_user(user, remember=False, force=True)
+                    return redirect("/dashboard/list/")
+                else:
+                    flash('Unable to login or create user', 'error')
+                    return redirect(self.appbuilder.get_url_for_login)   
+            return handle_login()
+        
+
+        @expose('/logout/', methods=['GET', 'POST'])
+        def logout(self):
+            oidc = self.appbuilder.sm.oid
+    
+            oidc.logout()
+            super(AuthOIDCView, self).logout()
+            redirect_url = request.url_root.strip('/')
+            # redirect_url = request.url_root.strip('/') + self.appbuilder.get_url_for_login
+    
+            return redirect(
+                oidc.client_secrets.get('issuer') + '/protocol/openid-connect/logout?redirect_uri=' + quote(redirect_url))    
+      
+
+extraVolumes:
+  - name: custom-assets
+    configMap:
+      name: superset-custom-assets
+
+extraVolumeMounts: 
+  - name: custom-assets
+    mountPath: /app/superset/static/assets/images/custom
+    readOnly: true
+
+
+# A dictionary of overrides to append at the end of superset_config.py - the name does not matter
+# WARNING: the order is not guaranteed
+configOverrides:
+  enable_feature_flags: |
+    FEATURE_FLAGS = {
+      "DASHBOARD_NATIVE_FILTERS": True,
+      "DASHBOARD_CROSS_FILTERS": True,
+      "DASHBOARD_NATIVE_FILTERS_SET": True,
+      "ENABLE_TEMPLATE_PROCESSING": True,
+      "DASHBOARD_RBAC": True
+    }
+
+  data_cache_config: |
+    DATA_CACHE_CONFIG = {
+      'CACHE_TYPE': 'redis',
+      'CACHE_DEFAULT_TIMEOUT': 600,
+      'CACHE_KEY_PREFIX': 'superset_',
+      'CACHE_REDIS_URL': 'redis://{{ tpl .Values.global.redis_dedup.host . }}:{{ tpl (.Values.global.redis_dedup.port | toString) . }}/{{ tpl (toString .Values.redis.db_index) $ }}'
+    }
+
+  sql_alchemy_config: |
+    SQLALCHEMY_DATABASE_URI = 'postgresql://{{ tpl .Values.postgresql.db_username . }}:{{ tpl .Values.postgresql.db_password . }}@{{ tpl .Values.global.postgresql.host . }}:{{ tpl (.Values.global.postgresql.port | toString) . }}/{{ tpl .Values.postgresql.db_name . }}'
+    SQLALCHEMY_TRACK_MODIFICATIONS = True
+    SECRET_KEY = 'thisISaSECRET_1234'
+
+  #map_box_key: |
+  #  MAPBOX_API_KEY=''
+
+  oauth: {}
+    # from flask_appbuilder.security.manager import (AUTH_DB, AUTH_OAUTH)
+    # AUTH_TYPE = AUTH_OAUTH
+
+    # OAUTH_PROVIDERS = [
+    #   {
+    #       "name": "google",
+    #       "whitelist": [ "{{ .Values.oauth.email_whitelist_regex }}" ],
+    #       "icon": "fa-google",
+    #       "token_key": "access_token",
+    #       "remote_app": {
+    #           "client_id": "{{ .Values.oauth.client_id }}",
+    #           "client_secret": "{{ .Values.oauth.client_secret }}",
+    #           "api_base_url": "https://www.googleapis.com/oauth2/v2/",
+    #           "client_kwargs": {"scope": "email profile"},
+    #           "request_token_url": None,
+    #           "access_token_url": "https://accounts.google.com/o/oauth2/token",
+    #           "authorize_url": "https://accounts.google.com/o/oauth2/auth",
+    #           "authorize_params": {"hd": "{{ .Values.oauth.whitelist_domain }}"}
+    #       }
+    #   }
+    # ]
+    # # Map Authlib roles to superset roles
+    # AUTH_ROLE_ADMIN = 'Admin'
+    # AUTH_ROLE_PUBLIC = 'Public'
+    # # Will allow user self registration, allowing to create Flask users from Authorized User
+    # AUTH_USER_REGISTRATION = True
+    # # The default user self registration role
+    # AUTH_USER_REGISTRATION_ROLE = "{{ oauth.user_registration_role }}"
+
+configMountPath: "/app/pythonpath"
+extraConfigMountPath: "/app/configs"
+dashboardMountPath: "/app/dashboards"
+
+image: &image
+  registry: docker.io
+  repository: apache/superset
+  tag: 3.0.2
+  pullPolicy: IfNotPresent
+
+<<: *image
+
+imagePullSecrets: []
+
+service:
+  type: ClusterIP
+  port: 8088
+  annotations: {}
+
+ingress:
+  enabled: false
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+    ## Extend timeout to allow long running queries.
+    # nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+    # nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    # nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+  path: /
+  pathType: ImplementationSpecific
+  hosts:
+    - chart-example.local
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+resources:
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  limits:
+    cpu: 512m
+    memory: 1024Mi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+##
+## Superset node configuration
+supersetNode:
+  command:
+    - "/bin/sh"
+    - "-c"
+    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; /usr/bin/run-server.sh"
+  connections:
+    redis_host: "{{ .Values.global.redis_dedup.host }}"
+    redis_port: "{{ .Values.global.redis_dedup.port }}"
+    db_host: "{{ .Values.global.postgresql.host }}"
+    db_port: "{{ .Values.global.postgresql.port }}"
+    db_user: "{{ .Values.postgresql.db_username }}"
+    db_pass: "{{ .Values.postgresql.db_password }}"
+    db_name: "{{ .Values.postgresql.db_name }}"
+  forceReload: false # If true, forces deployment to reload on each upgrade
+  # initContainers:
+  #   - name: wait-for-postgres
+  #     image: busybox:latest
+  #     imagePullPolicy: IfNotPresent
+  #     envFrom:
+  #       - secretRef:
+  #           name: '{{ tpl .Values.envFromSecret . }}'
+  #     command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
+  ## Annotations to be added to supersetNode deployment
+  deploymentAnnotations: {}
+  ## Annotations to be added to supersetNode pods
+  podAnnotations: {}
+
+##
+## Init job configuration
+init:
+  # Configure resources
+  # Warning: fab command consumes a lot of ram and can
+  # cause the process to be killed due to OOM if it exceeds limit
+  resources: {}
+    # limits:
+    #   cpu:
+    #   memory:
+    # requests:
+    #   cpu:
+    #   memory:
+  command:
+    - "/bin/sh"
+    - "-c"
+    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; . {{ .Values.configMountPath }}/superset_init.sh"
+  enabled: true
+  createAdmin: true
+  # initContainers:
+  #   - name: wait-for-postgres
+  #     image: busybox:latest
+  #     imagePullPolicy: IfNotPresent
+  #     envFrom:
+  #       - secretRef:
+  #           name: '{{ tpl .Values.envFromSecret . }}'
+  #     command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
+  initscript: |-
+    #!/bin/sh
+    echo "Upgrading DB schema..."
+    superset db upgrade
+    echo "Initializing roles..."
+    superset init
+    {{ if .Values.init.createAdmin }}
+    echo "Creating admin user..."
+    superset fab create-admin \
+                    --username {{ .Values.adminUser.username }} \
+                    --firstname {{ .Values.adminUser.firstname }} \
+                    --lastname {{ .Values.adminUser.lastname }} \
+                    --email {{ .Values.adminUser.email }} \
+                    --password {{ .Values.adminUser.password }} \
+                    || true
+    {{ end }}
+    if [ -f "{{ .Values.extraConfigMountPath }}/import_datasources.yaml" ]; then
+      echo "Importing database connections.... "
+      superset import_datasources -p {{ .Values.extraConfigMountPath }}/import_datasources.yaml
+    fi
+
+    if [ -f "{{ .Values.dashboardMountPath }}/dashboards.zip" ]; then
+      echo "Importing dashboards.... "
+      superset import-dashboards --path "{{ .Values.dashboardMountPath }}/dashboards.zip"
+    else
+      echo "File /app/dashboards/dashboards.zip not found..."
+    fi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

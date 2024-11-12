@@ -141,7 +141,7 @@ env:
   system_env: "{{ .Values.global.env }}"
   api_port: "3000"
   telemetry_kafka_compression: snappy
-  druid_host: "http://{{ .Values.global.druid.host }}"
+  druid_host: "{{ .Values.global.druid.host }}"
   druid_port: "{{ .Values.global.druid.port }}"
   kafka_host: "{{ .Values.global.kafka.host }}"
   kafka_port: "{{ .Values.global.kafka.port }}"
@@ -158,9 +158,9 @@ env:
   denorm_redis_port: "{{ .Values.global.redis_denorm.port }}"
   dedup_redis_host: "{{ .Values.global.redis_dedup.host }}"
   dedup_redis_port: "{{ .Values.global.redis_dedup.port }}"
-  cloud_storage_provider: "{{ .Values.global.cloud_storage_provider }}"
+  cloud_storage_provider: "{{ .Values.global.storage_provider }}"
   cloud_storage_region: "{{ .Values.global.cloud_storage_region }}"
-  container: "{{ .Values.global.dataset_api_cloud_bucket }}"
+  container: "{{ .Values.global.dataset_api_container }}"
   container_prefix: "connector-registry"
   storage_url_expiry: "3600"
   exhaust_query_range: "31" # In Days
@@ -177,7 +177,3 @@ env:
   pipeline_merged_job_manager_url: "http://unified-pipeline-jobmanager.{{.Values.global.flink.namespace}}.svc.cluster.local:8081"
   masterdata_processor_job_manager_url: "http://master-data-processor-ext-jobmanager.{{.Values.global.flink.namespace}}.svc.cluster.local:8081"
   prometheus_url: "{{ .Values.global.prometheus.url }}"
-  user_token_public_key: ""
-  is_RBAC_enabled: "false"
-  user_token_keycloak_public_key: ""
-  keycloak_audience: ""

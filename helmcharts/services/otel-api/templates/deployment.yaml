@@ -1,0 +1,51 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }}
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Chart.Name }}
+        system.ingestion: "true"
+    spec:
+      {{- if .Values.image.imagePullSecrets }}
+      imagePullSecrets:
+      - name: {{ .Values.image.imagePullSecrets }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.image_tag }}"
+          imagePullPolicy: Always
+          envFrom:
+           - configMapRef:
+              name: {{ .Chart.Name }}-config
+          ports:
+            - containerPort: {{ .Values.service.targetport }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ .Chart.Name }}-service"
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+    system.ingestion: "true"
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: http-{{ .Chart.Name }}
+      protocol: TCP
+      port: {{ .Values.service.targetport }}
+  selector:
+    app: {{ .Chart.Name }}
+
+
+

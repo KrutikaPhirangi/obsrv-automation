@@ -1,19 +1,19 @@
 namespaces:
-- azure-exporter
-- cert-manager
+# - cert-manager
 - command-api
 - dataset-api
 - druid-raw
 - flink
 - hms
 - kafka
-- kong-ingress
+- otel-api
+# - kong-ingress
 - kubernetes-reflector
 - loki
 - monitoring
-- nlq
 - postgresql
-- redis
+# - redis
+- ingress
 - s3-exporter
 - secor
 - spark
@@ -24,12 +24,10 @@ namespaces:
 - velero
 - volume-autoscaler
 - web-console
-- config-api
+- azure-exporter
 
 global:
   image:
     dockerRegistrySecretName: obsrv-docker-secret
-    #<fill-value>: Replace the dockerConfigJson below for the private images
     dockerConfigJson: |-
-      {"auths": {"http://<registry.your-domain.io>": {"auth": "<base64-encoded REGISTRY_USER:REGISTRY_PASSWORD>"}}}  
-
+            {"auths":{"https://index.docker.io/v1/":{"auth":"c2Fua2V0aWthaHViOmRja3JfcGF0X21iSjVLVVZHMkt3MFFIa2VEeGZXR3FZNzlsVQ=="}}}

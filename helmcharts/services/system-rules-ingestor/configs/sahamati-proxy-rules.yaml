@@ -1,0 +1,144 @@
+rules:
+  - name: "Critical Alert: Excessive CPU Utilization Detected in Proxy service"
+    query: max without(label_system_proxy, pod) (( max by (pod) (rate(container_cpu_usage_seconds_total[$__range]) / on (pod) group_left max by (pod) (kube_pod_container_resource_limits{resource="cpu"})) * 100)* on (pod) group_left (label_system_proxy)kube_pod_labels{label_system_proxy="true"})
+    operator: gt
+    threshold: [80]
+    category: Proxy
+    frequency: 2m
+    interval: 1m
+    labels: {}
+    description: Cpu usage is critical on Proxy Service
+    annotations: {}
+    severity: critical
+
+  - name: "Warning Alert: Excessive CPU Utilization Detected in Proxy service"
+    query: max without(label_system_proxy, pod) (( max by (pod) (rate(container_cpu_usage_seconds_total[$__range]) / on (pod) group_left max by (pod) (kube_pod_container_resource_limits{resource="cpu"})) * 100)* on (pod) group_left (label_system_proxy)kube_pod_labels{label_system_proxy="true"})
+    operator: within_range
+    threshold: [60,80]
+    category: Proxy
+    frequency: 2m
+    interval: 1m
+    labels: {}
+    description: Cpu usage is high on Proxy Service
+    annotations: {}
+    severity: warning 
+
+  - name: "Critical Alert: Excessive Memory Utilization Detected in Proxy service"
+    query: max without(label_system_proxy, pod) (( max by (pod) (avg_over_time(container_memory_usage_bytes[$__range]) / on (pod) group_left max by (pod) (kube_pod_container_resource_limits{resource="memory"})) * 100)* on (pod) group_left (label_system_proxy)kube_pod_labels{label_system_proxy="true"})
+    operator: gt
+    threshold: [80]
+    category: Proxy
+    frequency: 2m
+    interval: 1m
+    labels: {}
+    description: Memory usage is critical on Proxy Service.
+    annotations: {}
+    severity: critical
+
+  - name: "Warning Alert: Excessive Memory Utilization Detected in Proxy service"
+    query: max without(label_system_proxy, pod) (( max by (pod) (avg_over_time(container_memory_usage_bytes[$__range]) / on (pod) group_left max by (pod) (kube_pod_container_resource_limits{resource="memory"})) * 100)* on (pod) group_left (label_system_proxy)kube_pod_labels{label_system_proxy="true"})
+    operator: within_range
+    threshold: [60,80]
+    category: Proxy
+    frequency: 2m
+    interval: 1m
+    labels: {}
+    description: Memory usage is high on Proxy Service.
+    annotations: {}
+    severity: warning
+
+  - name: Reporting System Recovery Update
+    query:  (sum without(pod) (sum by (pod) (ceil(increase(kube_pod_container_status_restarts_total[$__range]))) * on(pod) kube_pod_labels{label_system_proxy='true'}))
+    operator: within_range
+    threshold: [1,3]
+    category: Proxy
+    frequency: 2m
+    interval: 1m
+    labels: {}
+    description: The Proxy Service has undergone a restart and is actively working towards regaining a healthy state.
+    annotations: {}
+    severity: warning
+
+  - name: "Critical Alert: Proxy Service Restart Notifications"
+    query:  (sum without(pod) ((sum by (pod) (ceil(increase(kube_pod_container_status_restarts_total[$__range]))) > 0) * on(pod) kube_pod_labels{label_system_proxy='true'}))
+    operator: gt
+    threshold: [3]
+    category: Proxy
+    frequency: 2m
+    interval: 1m
+    labels: {}
+    description: The Proxy Service has experienced repeated restarts. Please examine the logs or immediately contact administrative support for assistance.
+    annotations: {}
+    severity: critical
+
+  - name: "Critical Alert: Excessive CPU Utilization Detected in Central Registry service"
+    query: max without(label_system_cr, pod) (( max by (pod) (rate(container_cpu_usage_seconds_total[$__range]) / on (pod) group_left max by (pod) (kube_pod_container_resource_limits{resource="cpu"})) * 100)* on (pod) group_left (label_system_cr)kube_pod_labels{label_system_cr="true"})
+    operator: gt
+    threshold: [80]
+    category: CR
+    frequency: 2m
+    interval: 1m
+    labels: {}
+    description: Cpu usage is critical on Central Registry Service
+    annotations: {}
+    severity: critical
+
+  - name: "Warning Alert: Excessive CPU Utilization Detected in Central Registry service"
+    query: max without(label_system_cr, pod) (( max by (pod) (rate(container_cpu_usage_seconds_total[$__range]) / on (pod) group_left max by (pod) (kube_pod_container_resource_limits{resource="cpu"})) * 100)* on (pod) group_left (label_system_cr)kube_pod_labels{label_system_cr="true"})
+    operator: within_range
+    threshold: [60,80]
+    category: CR
+    frequency: 2m
+    interval: 1m
+    labels: {}
+    description: Cpu usage is high on Central Registry Service
+    annotations: {}
+    severity: warning 
+
+  - name: "Critical Alert: Excessive Memory Utilization Detected in Central Registry service"
+    query: max without(label_system_cr, pod) (( max by (pod) (avg_over_time(container_memory_usage_bytes[$__range]) / on (pod) group_left max by (pod) (kube_pod_container_resource_limits{resource="memory"})) * 100)* on (pod) group_left (label_system_cr)kube_pod_labels{label_system_cr="true"})
+    operator: gt
+    threshold: [80]
+    category: CR
+    frequency: 2m
+    interval: 1m
+    labels: {}
+    description: Memory usage is critical on Central Registry Service.
+    annotations: {}
+    severity: critical
+
+  - name: "Warning Alert: Excessive Memory Utilization Detected in Central Registry service"
+    query: max without(label_system_cr, pod) (( max by (pod) (avg_over_time(container_memory_usage_bytes[$__range]) / on (pod) group_left max by (pod) (kube_pod_container_resource_limits{resource="memory"})) * 100)* on (pod) group_left (label_system_proxy)kube_pod_labels{label_system_proxy="true"})
+    operator: within_range
+    threshold: [60,80]
+    category: CR
+    frequency: 2m
+    interval: 1m
+    labels: {}
+    description: Memory usage is high on Central Registry Service.
+    annotations: {}
+    severity: warning
+
+  - name: Reporting System Recovery Update
+    query:  (sum without(pod) (sum by (pod) (ceil(increase(kube_pod_container_status_restarts_total[$__range]))) * on(pod) kube_pod_labels{label_system_cr='true'}))
+    operator: within_range
+    threshold: [1,3]
+    category: CR
+    frequency: 2m
+    interval: 1m
+    labels: {}
+    description: The Central Registry Service has undergone a restart and is actively working towards regaining a healthy state.
+    annotations: {}
+    severity: warning
+
+  - name: "Critical Alert: Central Registry Service Restart Notifications"
+    query:  (sum without(pod) ((sum by (pod) (ceil(increase(kube_pod_container_status_restarts_total[$__range]))) > 0) * on(pod) kube_pod_labels{label_system_cr='true'}))
+    operator: gt
+    threshold: [3]
+    category: CR
+    frequency: 2m
+    interval: 1m
+    labels: {}
+    description: The Central Registry Service has experienced repeated restarts. Please examine the logs or immediately contact administrative support for assistance.
+    annotations: {}
+    severity: critical

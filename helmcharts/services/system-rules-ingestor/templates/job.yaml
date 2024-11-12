@@ -57,7 +57,6 @@ spec:
           volumeMounts:
           - name: config
             mountPath: {{ .Values.configmap.mountPath }}
-            subPath: rules.yaml
           {{- end }}
         {{- with .Values.sidecars }}
         {{- toYaml . | nindent 8 }}

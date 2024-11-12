@@ -1,12 +1,9 @@
 global:
   image:
     registry: &global_registry "sanketikahub"
-    dockerRegistrySecretName: &dockerSecretName "registry-secret-name"
-    #<fill-value>: Replace the dockerConfigJson below for the private images
+    dockerRegistrySecretName: &dockerSecretName obsrv-docker-secret
     dockerConfigJson: |-
-      {"auths": {"http://<registry.your-domain.io>": {"auth": "<base64-encoded REGISTRY_USER:REGISTRY_PASSWORD>"}}}  
-
-
+      {"auths":{"https://index.docker.io/v1/":{"auth":"c2Fua2V0aWthaHViOmRja3JfcGF0X21iSjVLVVZHMkt3MFFIa2VEeGZXR3FZNzlsVQ=="}}}
 
 imagePullSecrets: &imagePullSecrets
   - name: *dockerSecretName
@@ -21,7 +18,7 @@ images: &images
   ## Obsrv Images
   command-api: &command-api # registry: ""
     repository: obsrv-command-service
-    tag: "1.2.0-RC"
+    tag: "1.0.6.3-GA"
     digest: ""
 
   # dataset-api: #open source
@@ -31,36 +28,30 @@ images: &images
   #   digest: ""
 
   dataset-api: &dataset-api # registry: ""
-    repository: obsrv-api-service
-    tag: "1.2.0-RC"
+    repository: config-service-ext
+    tag: "1.0.6.3-GA"
     digest: ""
 
-  config-api: &config-api # registry: ""
-    repository: config-service-ext
-    tag: "1.2.0-RC"
-    digest: ""  
-
-  
   web-console: &web-console # registry: ""
     repository: "obsrv-web-console"
-    tag: "1.2.0-RC"
+    tag: "1.0.6.3-GA"
     digest: ""
 
   ## PIPELINE ENTERPRISE
   unified-pipeline: &unified-pipeline # registry: ""
     repository: unified-pipeline
-    tag: "1.1.0-RC"
+    tag: "1.0.6-GA"
     digest: ""
 
-  cache-indexer: &cache-indexer # registry: ""
-    repository: cache-indexer
-    tag: "1.1.0-RC"
+  master-data-processor-ext: &master-data-processor-ext # registry: ""
+    repository: master-data-processor-ext
+    tag: "1.0.6-GA"
     digest: ""
 
   ## PIPELINE ENTERPRISE - INDIVIDUAL COMPONENTS
   ## TODO: Add every component here
   transformer-ext: &transforer-ext # registry: ""
-    repository: transformer-ext
+    repository: transforer-ext
     tag: "1.0.6-GA"
     digest: ""
 
@@ -105,6 +96,11 @@ images: &images
     tag: "latest"
     digest: ""
 
+  web-console: &web-console # registry: ""
+    repository: "obsrv-web-console"
+    tag: "1.0.5-GA"
+    digest: ""
+
   promtail: &promtail
     registry: "docker.io"
     repository: "grafana/promtail"
@@ -116,18 +112,21 @@ images: &images
     repository: "bitnami/redis"
     tag: "7.0.11-debian-11-r15"
     digest: ""
-    pullSecrets:
-      - *dockerSecretName
 
-  # submit-ingestion: &submit-ingestion
-  #   registry: "docker.io"
-  #   repository: "ubuntu"
-  #   tag: "20.04"
-  #   digest: ""
+  submit-ingestion: &submit-ingestion
+    registry: "docker.io"
+    repository: "ubuntu"
+    tag: "20.04"
+    digest: ""
+  submit-ingestion: &submit-ingestion
+    registry: "docker.io"
+    repository: "ubuntu"
+    tag: "20.04"
+    digest: ""
 
   system-rules-ingestor: &system-rules-ingestor # registry: ""
     repository: "system-rules-ingestor"
-    tag: "1.0.3-GA"
+    tag: "1.0.7-RC"
     digest: ""
 
   loki: &loki
@@ -228,11 +227,14 @@ images: &images
   #  digest: "" If uncommented, this will take precendence as per velero chart design
 
   superset: &superset # registry: ""
-    repository: "sanketikahub/superset"
+    repository: "superset"
     tag: "3.0.2"
     digest: ""
 
-  secor: &secor # registry: ""
+  secor: &secor 
+    registry: "sanketikahub"
+  secor: &secor 
+    registry: "sanketikahub"
     repository: "secor"
     tag: "1.0.1"
     digest: ""
@@ -276,11 +278,11 @@ images: &images
     tag: 3.6.0
     digest: ""
 
-  # kafka-connector: &kafka-connector
-  #   # registry: ""
-  #   # repository: kafka-connector
-  #   tag: 1.0.5-GA
-  #   digest: ""
+  kafka-connector: &kafka-connector
+    # registry: ""
+    # repository: kafka-connector
+    tag: 1.0.5-GA
+    digest: ""
 
   # kafka-exporter: &kafka-exporter
   #   registry: "docker.io"
@@ -317,30 +319,21 @@ images: &images
     tag: "23.0.6-debian-11-r18"
     digest: ""
 
-  hms: &hms
-    # registry: ""
-    repository: hms
-    tag: "1.0.5"
+  ## PIPELINE OPENSOURCE
+  merged-pipeline: &merged-pipeline # registry: ""
+    repository: merged-pipeline
+    tag: "1.0.6-GA"
     digest: ""
 
-  trino: &trino
-    registry: "registry-1.docker.io"
-    repository: trinodb/trino
-    tag: "432"
-    digest: ""
-
-  promitor-agent-scraper: &promitor-agent-scraper
+  promitor-agent-scraper: &promitor-agent-scraper 
     repository: containers.promitor.io/tomkerkhove/promitor-agent-scraper
     pullPolicy: IfNotPresent
     pullSecrets: []
 
-  lakehouse-connector: &lakehouse-connector
-    repository: lakehouse-connector
-    tag: 1.1-RC
-
-  nlq-api: &nlq-api
-    repository: text2sql
-    tag: 0.1.0
+  promitor-agent-scraper: &promitor-agent-scraper 
+    repository: containers.promitor.io/tomkerkhove/promitor-agent-scraper
+    pullPolicy: IfNotPresent
+    pullSecrets: []
 
 # Public charts like bitnami etc
 # Modyfying these charts involves many changes
@@ -360,25 +353,23 @@ internal: &internal
     <<: *dataset-api
     imagePullSecrets: *imagePullSecrets
 
-  config-api:
-    <<: *config-api
-    imagePullSecrets: *imagePullSecrets   
-
-  nlq-api:
-    <<: *nlq-api
-    imagePullSecrets: *imagePullSecrets
-
   postgresql:
     image:
       <<: *postgresql
 
-  hms:
-    image:
-      <<: *hms
+  # hms:
+  #   image:
+  #     <<: *hms
+  # hms:
+  #   image:
+  #     <<: *hms
 
-  trino:
-    image:
-      <<: *trino
+  # trino:
+  #   image:
+  #     <<: *trino
+  # trino:
+  #   image:
+  #     <<: *trino
 
   postgresql-backup:
     <<: *postgresql-backup
@@ -477,9 +468,9 @@ internal: &internal
   #   image:
   #     <<: *kafka-exporter
 
-  # kafka-connector:
-  #   image:
-  #     <<: *kafka-connector
+  kafka-connector:
+    image:
+      <<: *kafka-connector
 
   kafka:
     image:
@@ -510,10 +501,14 @@ internal: &internal
       <<: *spark
 
   secor:
-    <<: *secor
+    image:
+      <<: *secor
+    image:
+      <<: *secor
 
   superset:
-    <<: *superset
+    image:
+      <<: *superset
 
   flink:
     imagePullSecrets: *imagePullSecrets
@@ -524,9 +519,9 @@ internal: &internal
       unified-pipeline:
         enabled: true
         <<: *unified-pipeline
-      cache-indexer:
+      master-data-processor-ext:
         enabled: true
-        <<: *cache-indexer
+        <<: *master-data-processor-ext
 
   cert-manager:
     imagePullSecrets: *imagePullSecrets
@@ -534,18 +529,14 @@ internal: &internal
   system-rules-ingestor:
     <<: *system-rules-ingestor
     imagePullSecrets: *imagePullSecrets
-
-  volume-autoscaler:
-    <<: *volume-autoscaler
-
-  promitor-agent-scraper:
+  
+  promitor-agent-scraper: 
     image:
       <<: *promitor-agent-scraper
-
-  lakehouse-connector:
+  
+  promitor-agent-scraper: 
     image:
-      <<: *lakehouse-connector
-
+      <<: *promitor-agent-scraper
 
 ## Sourcing internal as root element,
 ## should need arise

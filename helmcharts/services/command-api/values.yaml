@@ -1,6 +1,6 @@
 nameOverride: "command-api"
 fullnameOverride: "command-api"
-system_env: "dev"
+
 replicaCount: 1
 
 global:
@@ -54,8 +54,8 @@ resources:
     cpu: 100m
     memory: 128Mi
   limits:
-    cpu: 200m
-    memory: 256Mi
+    cpu: 100m
+    memory: 128Mi
 
 autoscaling:
   enabled: false
@@ -95,7 +95,7 @@ affinity: {}
 
 configmap:
   enabled: true
-  mountPath: /data/config
+  mountPath: /app/src/config/service_config.yml
 
 namespace: command-api
 serviceAccount:
@@ -111,7 +111,6 @@ rbac:
         - "batch"
         - "extensions"
         - "apps"
-        - "monitoring.coreos.com"
       resources:
         - "*"
       verbs:
@@ -144,34 +143,24 @@ serviceConfig:
     namespace: "{{.Values.global.flink.namespace}}"
     reinstall_sleep_time: 3
     jobs:
-      - name: "UnifiedPipelineJob"
+      - name: "PipelineMergedJob"
         release_name: unified-pipeline
         job_manager_url: "unified-pipeline-jobmanager.{{.Values.global.flink.namespace}}.svc.cluster.local:8081"
-      - name: "CacheIndexerJob"
-        release_name: cache-indexer
-        job_manager_url: "cache-indexer.{{.Values.global.flink.namespace}}.svc.cluster.local:8081"
-
-      - name: "Flink-Hudi-Connector"
-        release_name: lakehouse-connector
-        job_manager_url: "lakehouse-connector-jobmanager.{{.Values.global.flink.namespace}}.svc.cluster.local:8081"
-    
+      - name: "MasterDataProcessorJob"
+        release_name: master-data-processor-ext
+        job_manager_url: "master-data-processor-ext-jobmanager.{{.Values.global.flink.namespace}}.svc.cluster.local:8081"
 
   commands:
     PUBLISH_DATASET:
       workflow:
-        - CREATE_KAFKA_TOPIC
         - MAKE_DATASET_LIVE
         - SUBMIT_INGESTION_TASKS
         - START_PIPELINE_JOBS
-        - DEPLOY_CONNECTORS
         - CREATE_ALERT_METRIC
         - CREATE_AUDIT_EVENT
     RESTART_PIPELINE:
       workflow:
         - START_PIPELINE_JOBS
-    RESTART_CONNECTORS:
-      workflow:
-        - DEPLOY_CONNECTORS
 
   alert_manager:
     metrics:
@@ -271,47 +260,17 @@ serviceConfig:
     brokers: "{{ .Values.global.kafka.host }}:{{ .Values.global.kafka.port }}"
     telemetry:
       topic: "system.telemetry.events"
-    replication_factor: 1 
-    no_of_partitions: 1
 
   helm_charts_base_dir: /app/helm-charts
 
-  connector_job:
-    jdbc:
-      - release_name: jdbc-connector
-        jar: https://obsrv-connectors.s3.us-east-2.amazonaws.com/jdbc/jdbc-connector-1.0-jar-with-dependencies.jar
-        class: org.sunbird.obsrv.job.JDBCConnectorJob
-        schedule: "0 * * * *" # Every hour
-        args:
-          - "/opt/bitnami/spark/conf/jdbc-connector.conf"
-    object:
-      - release_name: object-discovery
-        jar: https://obsrv-connectors.s3.us-east-2.amazonaws.com/object-store/object-discovery-1.0.0.jar
-        class: in.sanketika.obsrv.job.ObjectDiscoveryJob
-        schedule: "0 1 * * *" # Daily Midnight 1AM
-        args:
-          - /opt/bitnami/spark/conf/object-discovery.conf
-      - release_name: object-processor
-        jar: https://obsrv-connectors.s3.us-east-2.amazonaws.com/object-store/object-processor-1.0.0.jar
-        class: in.sanketika.obsrv.job.ObjectProcessor
-        schedule: "30 * * * *" # Every hour at 30 minutes
-        args:
-          - /opt/bitnami/spark/conf/object-processor.conf
-
-  masterdata_job:
-    - release_name: masterdata-indexer
-      jar: https://obsrv-connectors.s3.us-east-2.amazonaws.com/masterdata-indexer/data-products-1.0.0.jar
-      class: org.sunbird.obsrv.dataproducts.MasterDataProcessorIndexer
-      schedule: "0 0 * * *" # Daily Midnight 12AM
-      args:
-        - /opt/bitnami/spark/conf/masterdata-indexer.conf
-
+  # Backups Config
+  # Backups Config
   backups:
     cloud_provider: "{{ .Values.global.cloud_storage_provider }}"
     bucket_name: "{{ .Values.global.cloud_storage_bucket }}"
 
   prometheus:
-    host: "{{ .Values.global.prometheus.url }}"
+    url: "{{ .Values.global.prometheus.url }}"
     backup_prefix: "/prometheus_backups"
     pod: "prometheus-kube-prometheus-stack-prometheus-0"
     namespace: "monitoring"
@@ -325,11 +284,3 @@ serviceConfig:
     download_path: /tmp/connector-registry
     metadata_file_name: "metadata.json"
     ui_spec_file: "ui-config.json"
-
-  connector_jobs:
-    spark:
-      namespace: spark
-      base_helm_chart: spark-connector-cron
-    flink:
-      namespace: flink
-      base_helm_chart: flink-connector

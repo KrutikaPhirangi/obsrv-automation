@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: "superset-keycloak-ingress"
+  namespace: "superset-keycloak"
+  annotations:
+    kubernetes.io/ingress.class: "azure/application-gateway"
+    appgw.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+  - hosts:
+    - "data.sandbox.sahamati.org.in"
+    secretName: "sahamati-data-tls-sandbox"
+  rules:
+  - host: "data.sandbox.sahamati.org.in"
+    http:
+      paths:
+      - path: "/"
+        pathType: Prefix
+        backend:
+          service:
+            name: "superset-keycloak"
+            port:
+              name: http

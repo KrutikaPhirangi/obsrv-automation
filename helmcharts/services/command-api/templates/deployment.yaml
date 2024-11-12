@@ -63,7 +63,7 @@ spec:
           volumeMounts:
           - name: config
             mountPath: {{ .Values.configmap.mountPath }}
-            # subPath: service_config.yml
+            subPath: service_config.yml
           {{- end }}
         {{- with .Values.sidecars }}
         {{- toYaml . | nindent 8 }}

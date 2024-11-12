@@ -34,7 +34,7 @@ spec:
   jobLabel: {{ template "promitor-agent-scraper.fullname" . }}
   namespaceSelector:
     matchNames:
-    -  {{ include "base.namespace" . }}
+    - {{ include "base.namespace" . }}
   selector:
     matchLabels:
       {{- include "promitor-agent-scraper.selectorLabels" . | nindent 6 }}
