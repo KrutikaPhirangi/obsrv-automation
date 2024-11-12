@@ -3,7 +3,7 @@ global:
     registry: &global_registry "sanketikahub"
     dockerRegistrySecretName: &dockerSecretName obsrv-docker-secret
     dockerConfigJson: |-
-      {"auths":{"https://index.docker.io/v1/":{"auth":"c2Fua2V0aWthaHViOmRja3JfcGF0X21iSjVLVVZHMkt3MFFIa2VEeGZXR3FZNzlsVQ=="}}}
+      {"auths":{"https://index.docker.io/v1/":{"auth":"a2Xua2V0aSthaHViOmRja3JfcGF0X21SjVLVVZHkMkt3MFFIa2VEeGZXR3FZNzlsPZ=="}}}
 
 imagePullSecrets: &imagePullSecrets
   - name: *dockerSecretName
