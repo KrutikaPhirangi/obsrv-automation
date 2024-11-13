@@ -129,11 +129,9 @@ migration_folder_list:
   - 01-superset
   - 02-druid-raw
   - 03-obsrv
-  - 04-hms
 postgresql_superset_user_password: "{{ .Values.global.postgresql.superset.password }}"
 postgresql_druid_raw_user_password: "{{ .Values.global.postgresql.druid.password }}"
 postgresql_obsrv_user_password: "{{ .Values.global.postgresql.obsrv.password }}"
-postgresql_hms_user_password: "{{ .Values.global.postgresql.hms.password }}"
 superset_oauth_clientid: ""
 superset_oauth_client_secret: ""
 kong_ingress_domain: ""

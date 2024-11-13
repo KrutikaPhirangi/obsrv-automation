@@ -1,23 +1,23 @@
 defaults:
-  env: &env "sandbox"
+  env: &env "dev"
 
-  system_stats_topic: &ss-kafka-topic "sandbox.stats"
-  masterdata_system_stats_topic: &masterdata-ss-kafka-topic "sandbox.masterdata.stats"
+  system_stats_topic: &ss-kafka-topic "dev.stats"
+  masterdata_system_stats_topic: &masterdata-ss-kafka-topic "dev.masterdata.stats"
 
   kafka-topics: &kafka-topics
-    - name: "sandbox.ingest"
+    - name: "dev.ingest"
       partitions: 1
       replicationFactor: 1
-    - name: "sandbox.masterdata.ingest"
+    - name: "dev.masterdata.ingest"
       partitions: 1
       replicationFactor: 1
 
   druid_router_host: &druid-router-host "druid-raw-routers.druid-raw.svc.cluster.local:8888"
 
   redirection_auth_path: &redirection_auth_path ""
-  domain: &domain "4.188.93.89.sslip.io"
+  domain: &domain "4.224.72.210.sslip.io"
 
-  domain_proxy: &domain_proxy "4.188.93.89.sslip.io"
+  domain_proxy: &domain_proxy "4.224.72.210.sslip.io"
 
 
 druid: &druid
@@ -28,9 +28,9 @@ druid: &druid
 grafana: &grafana
   fullnameOverride: "grafana" #TODO: check why namespace  doesn't work here
   env:
-    GF_AUTH_GENERIC_OAUTH_AUTH_URL: "https://4.188.93.89.sslip.io/console/api/oauth/v1/authorize"
-    GF_AUTH_GENERIC_OAUTH_TOKEN_URL: "https://4.188.93.89.sslip.io/console/api/oauth/v1/token"
-    GF_AUTH_GENERIC_OAUTH_API_URL: "https://4.188.93.89.sslip.io/console/api/oauth/v1/userinfo"
+    GF_AUTH_GENERIC_OAUTH_AUTH_URL: "https://4.224.72.210.sslip.io/console/api/oauth/v1/authorize"
+    GF_AUTH_GENERIC_OAUTH_TOKEN_URL: "https://4.224.72.210.sslip.io/console/api/oauth/v1/token"
+    GF_AUTH_GENERIC_OAUTH_API_URL: "https://4.224.72.210.sslip.io/console/api/oauth/v1/userinfo"
   managed_identity_enabled: true
   azure_auth_enabled: true 
   enabled: true

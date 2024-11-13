@@ -38,7 +38,7 @@ monitoring)
 coreinfra)
     rm -rf coreinfra
     cp -rf ../obsrv coreinfra
-    cp -rf ../services/{druid-raw-cluster,flink,spark,superset} coreinfra/charts/
+    cp -rf ../services/{druid-raw-cluster,flink,spark,superset-keycloak} coreinfra/charts/
 
     helm $cmd coreinfra ./coreinfra -n obsrv -f global-values.yaml -f images.yaml -f global-cloud-values-azure.yaml --debug
     ;;
@@ -52,7 +52,7 @@ obsrvtools)
 additional)
     rm -rf additional
     cp -rf ../obsrv additional
-    cp -rf ../services/{secor,druid-exporter,postgresql-exporter,postgresql-backup,ingress-routes} additional/charts/
+    cp -rf ../services/{secor,druid-exporter,postgresql-exporter,postgresql-backup,letsencrypt-ssl} additional/charts/
 
     helm $cmd additional ./additional -n obsrv -f global-values.yaml -f images.yaml -f global-cloud-values-azure.yaml --debug
     ;;
@@ -78,12 +78,12 @@ superset-keycloak)
 
     helm $cmd superset-keycloak ./superset-keycloak -n obsrv -f ../global-values.yaml -f ../images.yaml -f ../sahamati-global-values.yaml --debug
     ;;
-let-ssl)
+letsencrypt-ssl)
     rm -rf letsencrypt-ssl
     cp -rf ../obsrv letsencrypt-ssl
     cp -rf ../services/letsencrypt-ssl letsencrypt-ssl/charts/
 
-    helm $cmd letsencrypt-ssl ./letsencrypt-ssl -f ../images.yaml  --debug
+    helm $cmd letsencrypt-ssl ./letsencrypt-ssl -n obsrv -f ../images.yaml -f ../global-values.yaml --debug
     ;;
 all)
     # bash $0 bootstrap
